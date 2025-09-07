@@ -17,7 +17,7 @@ export default function Home() {
   const [submitStatus, setSubmitStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [submitMessage, setSubmitMessage] = useState<string>("");
 
-  const previewRows = useMemo(() => rows.slice(0, 8), [rows]);
+  const previewRows = useMemo(() => rows.slice(0, 5), [rows]);
 
   const handleDrop = (accepted: File[]) => {
     setError("");
@@ -95,10 +95,10 @@ export default function Home() {
   }, [files, targetCol]);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10">
-      <div className="flex flex-col items-center justify-center">
-        <h1 className="text-4xl font-bold">Welcome to SproutML 🌱</h1>
-        <p className="text-lg text-muted-foreground mt-1">Upload your dataset to get started.</p>
+    <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="flex flex-col items-center justify-center mb-6">
+        <h1 className="text-3xl font-bold">Welcome to SproutML 🌱</h1>
+        <p className="text-base text-muted-foreground mt-1">Upload your dataset to get started.</p>
       </div>
 
       <div className="mt-6">
@@ -108,60 +108,127 @@ export default function Home() {
           onError={(e) => setError(e.message)}
           src={files}
           maxFiles={1}
-          className="p-6"
+          className={`p-8 border-2 border-dashed transition-all duration-300 rounded-xl ${
+            files?.[0] 
+              ? "border-green-400 bg-green-50 hover:bg-green-100" 
+              : "border-gray-300 hover:cursor-pointer hover:border-blue-400 bg-gray-50/50 hover:bg-blue-50/50"
+          }`}
         >
-          <DropzoneEmptyState />
-          <DropzoneContent />
+          {files?.[0] ? (
+            <div className="flex flex-col items-center text-center space-y-3">
+              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-medium text-green-800">{files[0].name}</p>
+                <p className="text-sm text-green-600">{(files[0].size / 1024).toFixed(1)} KB uploaded successfully</p>
+              </div>
+              <span 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFiles(undefined);
+                  setColumns([]);
+                  setRows([]);
+                  setTargetCol("");
+                }}
+                className="text-sm text-green-700 hover:text-green-900 underline cursor-pointer"
+              >
+                Upload different file
+              </span>
+            </div>
+          ) : (
+            <>
+              <DropzoneEmptyState />
+              <DropzoneContent />
+            </>
+          )}
         </Dropzone>
         {error && (
           <p className="text-sm text-red-600 mt-2" role="alert">{error}</p>
         )}
       </div>
-
+      {/* Target column */}
       {columns.length > 0 && (
-        <div className="mt-8">
-          <label className="font-medium mr-3">Target column:</label>
-          <select
-            className="border rounded-md px-3 py-2 text-sm"
-            value={targetCol}
-            onChange={(e) => setTargetCol(e.target.value)}
-          >
-            <option value="" disabled>
-              Select a column
-            </option>
-            {columns.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+        <div className="mt-6">
+          <div className="flex items-center gap-3 mb-4">
+            <label className="text-sm font-medium text-gray-700">Target column:</label>
+            <div className="flex flex-wrap gap-2">
+              {columns.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setTargetCol(c)}
+                  className={`flex items-center gap-2 px-3 py-1 hover:cursor-pointer rounded-full text-sm transition-all duration-200 ${
+                    targetCol === c
+                      ? "bg-blue-100 text-blue-700 border border-blue-200"
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-blue-50 hover:text-blue-600"
+                  }`}
+                >
+                  {targetCol === c && (
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  )}
+                  {targetCol === c ? `Target: ${c}` : c}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
+      {/* Preview rows */}
       {previewRows.length > 0 && (
         <div className="mt-6">
           <Table>
             <TableHeader>
               <TableRow>
                 {columns.map((c) => (
-                  <TableHead key={c}>{c}</TableHead>
+                  <TableHead 
+                    key={c}
+                    className={`transition-all duration-300 ${
+                      c === targetCol 
+                        ? "bg-blue-100 font-semibold text-blue-900 border-l-4 border-blue-500 animate-in slide-in-from-left-1" 
+                        : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {c}
+                      {c === targetCol && (
+                        <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full animate-in zoom-in-50 duration-200">
+                          🎯 Target
+                        </span>
+                      )}
+                    </div>
+                  </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {previewRows.map((row, i) => (
-                <TableRow key={i}>
+                <TableRow key={i} className="hover:bg-gray-50/50 transition-colors">
                   {columns.map((c) => (
-                    <TableCell key={c}>{String((row as CsvRow)[c] ?? "")}</TableCell>
+                    <TableCell 
+                      key={c}
+                      className={`transition-all duration-300 ${
+                        c === targetCol 
+                          ? "bg-blue-50 font-medium text-blue-900 border-l-4 border-blue-300" 
+                          : ""
+                      }`}
+                    >
+                      {String((row as CsvRow)[c] ?? "")}
+                    </TableCell>
                   ))}
                 </TableRow>
               ))}
             </TableBody>
-            <TableCaption>Showing first {previewRows.length} rows</TableCaption>
           </Table>
+          <div className="text-center text-muted-foreground mt-4 text-sm">
+            Showing first {previewRows.length} rows
+          </div>
         </div>
       )}
 
+      {/* Begin training */}
       <div className="mt-8 flex items-center gap-3">
         <Button
           onClick={handleBeginTraining}
