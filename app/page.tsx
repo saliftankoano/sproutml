@@ -3,7 +3,7 @@
 import { useMemo, useState, useCallback } from "react";
 import Papa, { ParseResult } from "papaparse";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/ui/shadcn-io/dropzone";
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 
 type CsvRow = Record<string, unknown>;
@@ -17,7 +17,7 @@ export default function Home() {
   const [submitStatus, setSubmitStatus] = useState<"idle" | "loading" | "processing" | "success" | "error">("idle");
   const [submitMessage, setSubmitMessage] = useState<string>("");
   const [jobId, setJobId] = useState<string>("");
-  const [trainingResults, setTrainingResults] = useState<any>(null);
+  const [trainingResults, setTrainingResults] = useState<{ orchestrator_output?: string } | null>(null);
 
   const previewRows = useMemo(() => rows.slice(0, 5), [rows]);
 
@@ -54,7 +54,7 @@ export default function Home() {
         setColumns(keys);
         setRows(data);
       },
-      error: (err: Error, _file: unknown) => {
+      error: (err: Error) => {
         setError(err.message || "Failed to parse CSV.");
       },
     });
