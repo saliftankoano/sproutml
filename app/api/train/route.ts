@@ -15,25 +15,61 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing targetCol" }, { status: 400 });
     }
 
-    // Read the file contents as ArrayBuffer or text for forwarding/storage
-    const arrayBuffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
+    // Forward to Railway backend (async job submission)
+    const railwayUrl = "https://sproutml-agents-production.up.railway.app/train";
+    
+    // Create FormData for Railway API
+    const railwayForm = new FormData();
+    railwayForm.append("file", file);
+    railwayForm.append("target_column", targetCol);
 
-    // TODO: forward to your training service or queue here.
-    // Example placeholder: pretend we enqueue a job and return an id
-    const jobId = Math.random().toString(36).slice(2);
+    console.log(`Submitting training job to Railway: ${file.name}, target: ${targetCol}`);
 
-    // For now, just return basic metadata
+    // Send request to Railway backend (returns job ID immediately)
+    const railwayResponse = await fetch(railwayUrl, {
+      method: "POST",
+      body: railwayForm,
+    });
+
+    if (!railwayResponse.ok) {
+      const errorText = await railwayResponse.text();
+      console.error("Railway API error:", errorText);
+      return NextResponse.json(
+        { error: `Training service error: ${railwayResponse.status}` },
+        { status: 500 }
+      );
+    }
+
+    const railwayResult = await railwayResponse.json();
+    
+    console.log("Full Railway response:", JSON.stringify(railwayResult, null, 2));
+    console.log("Training job submitted:", railwayResult.job_id);
+
+    // Check if job_id exists in the response
+    if (!railwayResult.job_id) {
+      console.error("No job_id in Railway response:", railwayResult);
+      return NextResponse.json(
+        { error: "Invalid response from training service - missing job ID" },
+        { status: 500 }
+      );
+    }
+
+    // Return job information for frontend polling
     return NextResponse.json({
       ok: true,
-      jobId,
       filename: file.name,
-      size: bytes.byteLength,
+      size: file.size,
       targetCol,
       contentType: file.type || "text/csv",
+      jobId: railwayResult.job_id,
+      status: "queued",
+      message: "Training job submitted successfully. Use the job ID to check status.",
+      statusUrl: `https://sproutml-agents-production.up.railway.app/job/${railwayResult.job_id}`,
+      debug: railwayResult // Include full response for debugging
     });
   } catch (e) {
     const err = e as Error;
+    console.error("Frontend API error:", err);
     return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
   }
 }
