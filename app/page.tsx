@@ -14,8 +14,10 @@ export default function Home() {
   const [rows, setRows] = useState<CsvRow[]>([]);
   const [targetCol, setTargetCol] = useState<string>("");
   const [error, setError] = useState<string>("");
-  const [submitStatus, setSubmitStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "loading" | "processing" | "success" | "error">("idle");
   const [submitMessage, setSubmitMessage] = useState<string>("");
+  const [jobId, setJobId] = useState<string>("");
+  const [trainingResults, setTrainingResults] = useState<any>(null);
 
   const previewRows = useMemo(() => rows.slice(0, 5), [rows]);
 
@@ -58,6 +60,45 @@ export default function Home() {
     });
   };
 
+  // Poll for job status
+  const pollJobStatus = useCallback(async (jobId: string) => {
+    try {
+      const res = await fetch(`/api/job/${jobId}`);
+      const jobData = await res.json();
+      
+      if (!res.ok) {
+        setSubmitStatus("error");
+        setSubmitMessage("Failed to check job status.");
+        return;
+      }
+
+      console.log("Job status:", jobData.status);
+
+      if (jobData.status === "completed") {
+        setSubmitStatus("success");
+        setSubmitMessage("Training completed successfully!");
+        setTrainingResults(jobData.result);
+        return;
+      } else if (jobData.status === "failed") {
+        setSubmitStatus("error");
+        setSubmitMessage(`Training failed: ${jobData.error || "Unknown error"}`);
+        return;
+      } else if (jobData.status === "processing") {
+        setSubmitMessage("ML agents are processing your data...");
+        // Continue polling
+        setTimeout(() => pollJobStatus(jobId), 5000); // Poll every 5 seconds
+      } else if (jobData.status === "queued") {
+        setSubmitMessage("Job queued, waiting to start...");
+        // Continue polling
+        setTimeout(() => pollJobStatus(jobId), 3000); // Poll every 3 seconds
+      }
+    } catch (e) {
+      console.error("Error polling job status:", e);
+      setSubmitStatus("error");
+      setSubmitMessage("Error checking training status.");
+    }
+  }, []);
+
   const handleBeginTraining = useCallback(async () => {
     if (!files?.[0]) {
       setSubmitStatus("error");
@@ -71,28 +112,40 @@ export default function Home() {
     }
     try {
       setSubmitStatus("loading");
-      setSubmitMessage("");
+      setSubmitMessage("Submitting training job...");
+      setTrainingResults(null);
+      
       const form = new FormData();
       form.append("file", files[0]);
       form.append("targetCol", targetCol);
+      
       const res = await fetch("/api/train", {
         method: "POST",
         body: form,
       });
       const json = await res.json();
+      
       if (!res.ok) {
         setSubmitStatus("error");
         setSubmitMessage(json?.error || "Training request failed.");
         return;
       }
-      setSubmitStatus("success");
-      setSubmitMessage("Training started successfully.");
+
+      // Job submitted successfully, start polling
+      const newJobId = json.jobId;
+      setJobId(newJobId);
+      setSubmitStatus("processing");
+      setSubmitMessage("Training job submitted. Starting processing...");
+      
+      // Start polling for status
+      setTimeout(() => pollJobStatus(newJobId), 2000); // Start polling after 2 seconds
+      
     } catch (e) {
       const err = e as Error;
       setSubmitStatus("error");
       setSubmitMessage(err.message || "Unexpected error starting training.");
     }
-  }, [files, targetCol]);
+  }, [files, targetCol, pollJobStatus]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
@@ -232,23 +285,52 @@ export default function Home() {
       <div className="mt-8 flex items-center gap-3">
         <Button
           onClick={handleBeginTraining}
-          disabled={!files?.[0] || !targetCol || submitStatus === "loading"}
+          disabled={!files?.[0] || !targetCol || submitStatus === "loading" || submitStatus === "processing"}
           className="bg-green-600"
         >
-          {submitStatus === "loading" ? "Starting…" : "Begin training"}
+          {submitStatus === "loading" 
+            ? "Submitting..." 
+            : submitStatus === "processing" 
+            ? "Training..." 
+            : "Begin training"}
         </Button>
         {submitStatus !== "idle" && (
-          <span className={
-            submitStatus === "success"
-              ? "text-green-600 text-sm"
-              : submitStatus === "error"
-              ? "text-red-600 text-sm"
-              : "text-muted-foreground text-sm"
-          }>
-            {submitMessage}
-          </span>
+          <div className="flex items-center gap-2">
+            {submitStatus === "processing" && (
+              <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+            )}
+            <span className={
+              submitStatus === "success"
+                ? "text-green-600 text-sm"
+                : submitStatus === "error"
+                ? "text-red-600 text-sm"
+                : submitStatus === "processing"
+                ? "text-blue-600 text-sm"
+                : "text-muted-foreground text-sm"
+            }>
+              {submitMessage}
+            </span>
+            {jobId && (
+              <span className="text-xs text-gray-500 ml-2">
+                Job ID: {jobId.slice(0, 8)}...
+              </span>
+            )}
+          </div>
         )}
       </div>
+
+      {/* Training Results */}
+      {trainingResults && (
+        <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-lg">
+          <h3 className="text-lg font-semibold text-green-800 mb-4">🎉 Training Results</h3>
+          <div className="bg-white p-4 rounded border">
+            <h4 className="font-medium text-gray-800 mb-2">Orchestrator Output:</h4>
+            <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded">
+              {trainingResults.orchestrator_output || "No detailed output available."}
+            </pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
