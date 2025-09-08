@@ -18,6 +18,7 @@ export default function Home() {
   const [submitMessage, setSubmitMessage] = useState<string>("");
   const [jobId, setJobId] = useState<string>("");
   const [trainingResults, setTrainingResults] = useState<{ orchestrator_output?: string } | null>(null);
+  const [artifacts, setArtifacts] = useState<{ workspace: string; listing: string; files?: string[]; latest_csv?: string | null } | null>(null);
 
   const previewRows = useMemo(() => rows.slice(0, 5), [rows]);
 
@@ -78,6 +79,10 @@ export default function Home() {
         setSubmitStatus("success");
         setSubmitMessage("Training completed successfully!");
         setTrainingResults(jobData.result);
+        try {
+          const artRes = await fetch(`/api/job/${jobId}/artifacts`);
+          if (artRes.ok) setArtifacts(await artRes.json());
+        } catch {}
         return;
       } else if (jobData.status === "failed") {
         setSubmitStatus("error");
@@ -329,6 +334,47 @@ export default function Home() {
               {trainingResults.orchestrator_output || "No detailed output available."}
             </pre>
           </div>
+          {jobId && (
+            <div className="mt-6 bg-white p-4 rounded border">
+              <h4 className="font-medium text-gray-800 mb-2">📦 Artifacts</h4>
+              <div className="text-sm text-gray-700 mb-2">Latest CSV: {artifacts?.latest_csv || "N/A"}</div>
+              <div className="flex items-center gap-2 mb-3">
+                <Button
+                  onClick={async () => {
+                    const res = await fetch(`/api/job/${jobId}/artifacts`);
+                    if (res.ok) setArtifacts(await res.json());
+                  }}
+                  className="bg-blue-600"
+                >
+                  Refresh Artifacts
+                </Button>
+                {artifacts?.latest_csv && (
+                  <a
+                    href={`/api/job/${jobId}/download?file=${encodeURIComponent(artifacts.latest_csv)}`}
+                    className="px-3 py-2 rounded bg-green-600 text-white text-sm"
+                  >
+                    Download Latest CSV
+                  </a>
+                )}
+              </div>
+              <div className="text-xs text-gray-700 bg-gray-50 p-3 rounded max-h-64 overflow-auto">
+                {!artifacts?.files?.length && <div>No files listed yet.</div>}
+                <ul className="space-y-1">
+                  {artifacts?.files?.map((f) => (
+                    <li key={f} className="flex items-center justify-between">
+                      <span>{f}</span>
+                      <a
+                        href={`/api/job/${jobId}/download?file=${encodeURIComponent(f)}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        Download
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
