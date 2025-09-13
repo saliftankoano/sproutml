@@ -92,10 +92,18 @@ export default function Home() {
         setSubmitMessage("ML agents are processing your data...");
         // Continue polling
         setTimeout(() => pollJobStatus(jobId), 5000); // Poll every 5 seconds
+      } else if (jobData.status === "daytona") {
+        setSubmitMessage("Setting up cloud infrastructure...");
+        // Continue polling
+        setTimeout(() => pollJobStatus(jobId), 3000); // Poll every 3 seconds
       } else if (jobData.status === "queued") {
         setSubmitMessage("Job queued, waiting to start...");
         // Continue polling
         setTimeout(() => pollJobStatus(jobId), 3000); // Poll every 3 seconds
+      } else {
+        // Handle any other statuses by continuing to poll
+        setSubmitMessage(`Job status: ${jobData.status}`);
+        setTimeout(() => pollJobStatus(jobId), 5000); // Poll every 5 seconds
       }
     } catch (e) {
       console.error("Error polling job status:", e);
@@ -291,7 +299,7 @@ export default function Home() {
         <Button
           onClick={handleBeginTraining}
           disabled={!files?.[0] || !targetCol || submitStatus === "loading" || submitStatus === "processing"}
-          className="bg-green-600"
+          className="bg-green-600 hover:cursor-pointer"
         >
           {submitStatus === "loading" 
             ? "Submitting..." 
@@ -344,7 +352,7 @@ export default function Home() {
                     const res = await fetch(`/api/job/${jobId}/artifacts`);
                     if (res.ok) setArtifacts(await res.json());
                   }}
-                  className="bg-blue-600"
+                  className="bg-blue-600 hover:cursor-pointer"
                 >
                   Refresh Artifacts
                 </Button>
