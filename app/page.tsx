@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useCallback } from "react";
+import Image from "next/image";
 import Papa, { ParseResult } from "papaparse";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/ui/shadcn-io/dropzone";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -365,22 +366,104 @@ export default function Home() {
                   </a>
                 )}
               </div>
-              <div className="text-xs text-gray-700 bg-gray-50 p-3 rounded max-h-64 overflow-auto">
-                {!artifacts?.files?.length && <div>No files listed yet.</div>}
-                <ul className="space-y-1">
-                  {artifacts?.files?.map((f) => (
-                    <li key={f} className="flex items-center justify-between">
-                      <span>{f}</span>
-                      <a
-                        href={`/api/job/${jobId}/download?file=${encodeURIComponent(f)}`}
-                        className="text-blue-600 hover:underline"
-                      >
-                        Download
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+               <div className="bg-gray-50 rounded-lg p-4 max-h-80 overflow-auto">
+                 {!artifacts?.files?.length ? (
+                   <div className="text-center py-8">
+                     <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-lg flex items-center justify-center">
+                       <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                       </svg>
+                     </div>
+                     <p className="text-sm text-gray-500">No files available yet</p>
+                   </div>
+                 ) : (
+                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                     {artifacts.files.map((filename) => {
+                       const getFileIcon = (filename: string) => {
+                         const ext = filename.toLowerCase().split('.').pop();
+                         switch (ext) {
+                           case 'csv':
+                             return (
+                               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+                                 <Image src="/csv.svg" alt="CSV file" width={40} height={40} className="object-contain" />
+                               </div>
+                             );
+                           case 'json':
+                             return (
+                               <div className="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                 </svg>
+                               </div>
+                             );
+                           case 'png':
+                           case 'jpg':
+                           case 'jpeg':
+                           case 'gif':
+                             return (
+                               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+                                 <Image src="/png.svg" alt="Image file" width={40} height={40} className="object-contain" />
+                               </div>
+                             );
+                           case 'py':
+                             return (
+                               <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                 </svg>
+                               </div>
+                             );
+                           case 'txt':
+                           case 'log':
+                             return (
+                               <div className="w-10 h-10 bg-gray-500 rounded-lg flex items-center justify-center">
+                                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                 </svg>
+                               </div>
+                             );
+                           default:
+                             return (
+                               <div className="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center">
+                                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                 </svg>
+                               </div>
+                             );
+                         }
+                       };
+
+                       return (
+                         <div key={filename} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow group">
+                           <div className="flex items-start gap-3">
+                             {getFileIcon(filename)}
+                             <div className="flex-1 min-w-0">
+                               <p className="text-sm font-medium text-gray-900 truncate" title={filename}>
+                                 {filename}
+                               </p>
+                               <p className="text-xs text-gray-500 mt-1">
+                                 {filename.split('.').pop()?.toUpperCase()} file
+                               </p>
+                             </div>
+                           </div>
+                           <div className="mt-3 flex justify-end">
+                             <a
+                               href={`/api/job/${jobId}/download?file=${encodeURIComponent(filename)}`}
+                               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-medium rounded-lg transition-colors group-hover:bg-blue-100"
+                               title={`Download ${filename}`}
+                             >
+                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                               </svg>
+                               Download
+                             </a>
+                           </div>
+                         </div>
+                       );
+                     })}
+                   </div>
+                 )}
+               </div>
             </div>
           )}
         </div>
