@@ -19,7 +19,11 @@ export default function Home() {
   const [submitMessage, setSubmitMessage] = useState<string>("");
   const [jobId, setJobId] = useState<string>("");
   const [trainingResults, setTrainingResults] = useState<{ orchestrator_output?: string } | null>(null);
-  const [artifacts, setArtifacts] = useState<{ workspace: string; listing: string; files?: string[]; latest_csv?: string | null } | null>(null);
+  const [artifacts, setArtifacts] = useState<{ workspace: string; listing: string; files?: string[]; latest_csv?: string | null; model_files?: string[]; model_files_ready?: boolean; trained_models?: Record<string, unknown>[] } | null>(null);
+  // Live update states
+  const [latestPreOutput, setLatestPreOutput] = useState<string>("");
+  type ModelResult = Record<string, unknown> | null;
+  const [latestModelResult, setLatestModelResult] = useState<ModelResult>(null);
 
   const previewRows = useMemo(() => rows.slice(0, 5), [rows]);
 
@@ -80,6 +84,8 @@ export default function Home() {
         setSubmitStatus("success");
         setSubmitMessage("Training completed successfully!");
         setTrainingResults(jobData.result);
+        setLatestPreOutput(jobData.latest_output || "");
+        setLatestModelResult(jobData.latest_model_result || null);
         try {
           const artRes = await fetch(`/api/job/${jobId}/artifacts`);
           if (artRes.ok) setArtifacts(await artRes.json());
@@ -89,8 +95,15 @@ export default function Home() {
         setSubmitStatus("error");
         setSubmitMessage(`Training failed: ${jobData.error || "Unknown error"}`);
         return;
-      } else if (jobData.status === "processing") {
+      } else if (jobData.status === "processing" || jobData.status === "preprocessing" || jobData.status === "training") {
         setSubmitMessage("ML agents are processing your data...");
+        if (jobData.latest_output) setLatestPreOutput(jobData.latest_output);
+        if (jobData.latest_model_result) setLatestModelResult(jobData.latest_model_result);
+        // Periodically refresh artifacts while running
+        try {
+          const artRes = await fetch(`/api/job/${jobId}/artifacts`);
+          if (artRes.ok) setArtifacts(await artRes.json());
+        } catch {}
         // Continue polling
         setTimeout(() => pollJobStatus(jobId), 5000); // Poll every 5 seconds
       } else if (jobData.status === "daytona") {
@@ -128,6 +141,8 @@ export default function Home() {
       setSubmitStatus("loading");
       setSubmitMessage("Submitting training job...");
       setTrainingResults(null);
+      setLatestPreOutput("");
+      setLatestModelResult(null);
       
       const form = new FormData();
       form.append("file", files[0]);
@@ -159,7 +174,7 @@ export default function Home() {
       setSubmitStatus("error");
       setSubmitMessage(err.message || "Unexpected error starting training.");
     }
-  }, [files, targetCol, pollJobStatus]);
+  }, [files, targetCol, pollJobStatus]); // Deliberately not depending on live states; polling reads fresh values
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
@@ -333,6 +348,25 @@ export default function Home() {
         )}
       </div>
 
+      {/* Live updates */}
+      {(submitStatus === "processing" || latestPreOutput || latestModelResult) && (
+        <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="text-lg font-semibold text-blue-800 mb-4">Live updates</h3>
+          {latestPreOutput && (
+            <div className="bg-white p-4 rounded border mb-4">
+              <h4 className="font-medium text-gray-800 mb-2">Preprocessing step output</h4>
+              <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded max-h-64 overflow-auto">{latestPreOutput}</pre>
+            </div>
+          )}
+          {latestModelResult && (
+            <div className="bg-white p-4 rounded border">
+              <h4 className="font-medium text-gray-800 mb-2">Latest model result</h4>
+              <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded max-h-64 overflow-auto">{JSON.stringify(latestModelResult, null, 2)}</pre>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Training Results */}
       {trainingResults && (
         <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-lg">
@@ -347,6 +381,11 @@ export default function Home() {
             <div className="mt-6 bg-white p-4 rounded border">
               <h4 className="font-medium text-gray-800 mb-2">📦 Artifacts</h4>
               <div className="text-sm text-gray-700 mb-2">Latest CSV: {artifacts?.latest_csv || "N/A"}</div>
+              {artifacts?.model_files_ready && (
+                <div className="text-sm text-purple-700 mb-2 font-medium">
+                  🤖 Trained Models: {artifacts.model_files?.length || 0} model(s) ready for download
+                </div>
+              )}
               <div className="flex items-center gap-2 mb-3">
                 <Button
                   onClick={async () => {
@@ -407,18 +446,22 @@ export default function Home() {
                              );
                            case 'py':
                              return (
-                               <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                                 </svg>
+                               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+                                 <Image src="/py.svg" alt="Python file" width={40} height={40} className="object-contain" />
                                </div>
                              );
                            case 'txt':
                            case 'log':
                              return (
-                               <div className="w-10 h-10 bg-gray-500 rounded-lg flex items-center justify-center">
+                               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+                                 <Image src="/txt.svg" alt="Text file" width={40} height={40} className="object-contain" />
+                               </div>
+                             );
+                           case 'pkl':
+                             return (
+                               <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
                                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                  </svg>
                                </div>
                              );
