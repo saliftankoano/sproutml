@@ -83,8 +83,8 @@ export const Dropzone = ({
     >
       <Button
         className={cn(
-          'relative h-auto w-full flex-col overflow-hidden p-8',
-          isDragActive && 'outline-none ring-1 ring-ring',
+          'relative h-auto w-full flex-col overflow-hidden p-8 transition-all duration-300',
+          isDragActive && 'outline-none ring-2 ring-indigo-500 ring-offset-2 scale-[1.02]',
           className
         )}
         disabled={disabled}
@@ -132,17 +132,17 @@ export const DropzoneContent = ({
 
   return (
     <div className={cn('flex flex-col items-center justify-center', className)}>
-      <div className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
-        <UploadIcon size={16} />
+      <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-600 shadow-md">
+        <UploadIcon size={20} />
       </div>
-      <p className="my-2 w-full truncate font-medium text-sm">
+      <p className="my-3 w-full truncate font-semibold text-base">
         {src.length > maxLabelItems
           ? `${new Intl.ListFormat('en').format(
               src.slice(0, maxLabelItems).map((file) => file.name)
             )} and ${src.length - maxLabelItems} more`
           : new Intl.ListFormat('en').format(src.map((file) => file.name))}
       </p>
-      <p className="w-full text-wrap text-muted-foreground text-xs">
+      <p className="w-full text-wrap text-gray-600 text-sm">
         Drag and drop or click to replace
       </p>
     </div>
@@ -185,17 +185,17 @@ export const DropzoneEmptyState = ({
 
   return (
     <div className={cn('flex flex-col items-center justify-center', className)}>
-      <div className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
-        <UploadIcon size={16} />
+      <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-600 shadow-md mb-2">
+        <UploadIcon size={20} />
       </div>
-      <p className="my-2 w-full truncate text-wrap font-medium text-sm">
+      <p className="my-2 w-full truncate text-wrap font-semibold text-base">
         Upload {maxFiles === 1 ? 'a file' : 'files'}
       </p>
-      <p className="w-full truncate text-wrap text-muted-foreground text-xs">
+      <p className="w-full truncate text-wrap text-gray-600 text-sm">
         Drag and drop or click to upload
       </p>
       {caption && (
-        <p className="text-wrap text-muted-foreground text-xs">{caption}.</p>
+        <p className="text-wrap text-gray-500 text-xs mt-2">{caption}.</p>
       )}
     </div>
   );
