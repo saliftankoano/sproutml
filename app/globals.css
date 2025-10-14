@@ -119,4 +119,39 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+    border-radius: 10px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gradient-to-b from-emerald-400 to-teal-500;
+    border-radius: 10px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply from-emerald-500 to-teal-600;
+  }
+  
+  /* Better focus states for accessibility */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-emerald-500;
+  }
+  
+  /* Smooth transitions for all interactive elements */
+  button, a, input, select, textarea {
+    @apply transition-all duration-200;
+  }
 }
