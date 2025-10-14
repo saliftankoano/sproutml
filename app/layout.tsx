@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SproutML🌱",
-  description: "SproutML is a platform for machine learning.",
+  title: "AL.Dev - Professional Digital Services",
+  description: "AL.Dev integrates digital products with expertise in Machine Learning, AI Integration, Digital Marketing, and Financial Services. Performance-driven solutions for modern businesses.",
 };
 
 export default function RootLayout({
