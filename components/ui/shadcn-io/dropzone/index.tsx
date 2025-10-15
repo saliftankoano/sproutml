@@ -131,18 +131,18 @@ export const DropzoneContent = ({
   }
 
   return (
-    <div className={cn('flex flex-col items-center justify-center', className)}>
-      <div className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
-        <UploadIcon size={16} />
+    <div className={cn('flex flex-col items-center justify-center py-2', className)}>
+      <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-600 shadow-md shadow-emerald-100 mb-3">
+        <UploadIcon size={24} strokeWidth={2.5} />
       </div>
-      <p className="my-2 w-full truncate font-medium text-sm">
+      <p className="my-2 w-full truncate font-semibold text-base text-gray-900">
         {src.length > maxLabelItems
           ? `${new Intl.ListFormat('en').format(
               src.slice(0, maxLabelItems).map((file) => file.name)
             )} and ${src.length - maxLabelItems} more`
           : new Intl.ListFormat('en').format(src.map((file) => file.name))}
       </p>
-      <p className="w-full text-wrap text-muted-foreground text-xs">
+      <p className="w-full text-wrap text-gray-600 text-sm">
         Drag and drop or click to replace
       </p>
     </div>
@@ -184,18 +184,18 @@ export const DropzoneEmptyState = ({
   }
 
   return (
-    <div className={cn('flex flex-col items-center justify-center', className)}>
-      <div className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
-        <UploadIcon size={16} />
+    <div className={cn('flex flex-col items-center justify-center py-4', className)}>
+      <div className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 text-blue-600 shadow-lg shadow-blue-100 mb-4">
+        <UploadIcon size={28} strokeWidth={2.5} />
       </div>
-      <p className="my-2 w-full truncate text-wrap font-medium text-sm">
-        Upload {maxFiles === 1 ? 'a file' : 'files'}
+      <p className="my-2 w-full truncate text-wrap font-semibold text-lg text-gray-900">
+        Upload {maxFiles === 1 ? 'Your Dataset' : 'Your Files'}
       </p>
-      <p className="w-full truncate text-wrap text-muted-foreground text-xs">
-        Drag and drop or click to upload
+      <p className="w-full truncate text-wrap text-gray-600 text-sm font-medium">
+        Drag and drop or click to browse
       </p>
       {caption && (
-        <p className="text-wrap text-muted-foreground text-xs">{caption}.</p>
+        <p className="text-wrap text-gray-500 text-xs mt-2 bg-gray-100 px-3 py-1 rounded-full">{caption}</p>
       )}
     </div>
   );
