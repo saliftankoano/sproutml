@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SproutML🌱",
-  description: "SproutML is a platform for machine learning.",
+  title: "SproutML 🌱 - AI-Powered Machine Learning Platform",
+  description: "Transform your data into intelligence with SproutML. Upload datasets and let our AI agents build, train, and optimize machine learning models automatically.",
 };
 
 export default function RootLayout({
@@ -23,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="scroll-smooth">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
       >
