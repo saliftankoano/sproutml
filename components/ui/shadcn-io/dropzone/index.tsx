@@ -158,7 +158,7 @@ export const DropzoneEmptyState = ({
   children,
   className,
 }: DropzoneEmptyStateProps) => {
-  const { src, accept, maxSize, minSize, maxFiles } = useDropzoneContext();
+  const { src, accept, maxSize, minSize } = useDropzoneContext();
 
   if (src) {
     return null;
@@ -184,18 +184,18 @@ export const DropzoneEmptyState = ({
   }
 
   return (
-    <div className={cn('flex flex-col items-center justify-center', className)}>
-      <div className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
-        <UploadIcon size={16} />
+    <div className={cn('flex flex-col items-center justify-center py-4', className)}>
+      <div className="flex size-12 items-center justify-center rounded-xl bg-accent/10 text-accent border border-accent/20 mb-4">
+        <UploadIcon size={20} />
       </div>
-      <p className="my-2 w-full truncate text-wrap font-medium text-sm">
-        Upload {maxFiles === 1 ? 'a file' : 'files'}
+      <p className="my-1 w-full truncate text-wrap font-semibold text-base text-text">
+        Drop your dataset to get started
       </p>
-      <p className="w-full truncate text-wrap text-muted-foreground text-xs">
+      <p className="w-full truncate text-wrap text-muted text-sm mb-2">
         Drag and drop or click to upload
       </p>
       {caption && (
-        <p className="text-wrap text-muted-foreground text-xs">{caption}.</p>
+        <p className="text-wrap text-muted text-xs mt-1">{caption}</p>
       )}
     </div>
   );
