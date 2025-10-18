@@ -1,10 +1,9 @@
 "use client";
 
 import { useMemo, useState, useCallback } from "react";
-import Image from "next/image";
 import Papa, { ParseResult } from "papaparse";
-import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/ui/shadcn-io/dropzone";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { motion, AnimatePresence } from "framer-motion";
+import { Upload, FileCheck2, Target, Sparkles, TrendingUp, Download, BarChart3, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type CsvRow = Record<string, unknown>;
@@ -20,24 +19,36 @@ export default function Home() {
   const [jobId, setJobId] = useState<string>("");
   const [trainingResults, setTrainingResults] = useState<{ orchestrator_output?: string } | null>(null);
   const [artifacts, setArtifacts] = useState<{ workspace: string; listing: string; files?: string[]; latest_csv?: string | null; model_files?: string[]; model_files_ready?: boolean; trained_models?: Record<string, unknown>[] } | null>(null);
-  // Live update states
   const [latestPreOutput, setLatestPreOutput] = useState<string>("");
   type ModelResult = Record<string, unknown> | null;
   const [latestModelResult, setLatestModelResult] = useState<ModelResult>(null);
+  const [dragActive, setDragActive] = useState(false);
 
   const previewRows = useMemo(() => rows.slice(0, 5), [rows]);
 
-  const handleDrop = (accepted: File[]) => {
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    const droppedFiles = e.dataTransfer.files;
+    if (!droppedFiles || droppedFiles.length === 0) return;
+
+    const file = droppedFiles[0];
+    processFile(file);
+  }, []);
+
+  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    processFile(file);
+  }, []);
+
+  const processFile = (file: File) => {
     setError("");
     setColumns([]);
     setRows([]);
     setTargetCol("");
-
-    if (!accepted || accepted.length === 0) {
-      return;
-    }
-
-    const file = accepted[0];
     setFiles([file]);
 
     if (!file.name.toLowerCase().endsWith(".csv")) {
@@ -66,7 +77,6 @@ export default function Home() {
     });
   };
 
-  // Poll for job status
   const pollJobStatus = useCallback(async (jobId: string) => {
     try {
       const res = await fetch(`/api/job/${jobId}`);
@@ -77,8 +87,6 @@ export default function Home() {
         setSubmitMessage("Failed to check job status.");
         return;
       }
-
-      console.log("Job status:", jobData.status);
 
       if (jobData.status === "completed") {
         setSubmitStatus("success");
@@ -99,25 +107,20 @@ export default function Home() {
         setSubmitMessage("ML agents are processing your data...");
         if (jobData.latest_output) setLatestPreOutput(jobData.latest_output);
         if (jobData.latest_model_result) setLatestModelResult(jobData.latest_model_result);
-        // Periodically refresh artifacts while running
         try {
           const artRes = await fetch(`/api/job/${jobId}/artifacts`);
           if (artRes.ok) setArtifacts(await artRes.json());
         } catch {}
-        // Continue polling
-        setTimeout(() => pollJobStatus(jobId), 5000); // Poll every 5 seconds
+        setTimeout(() => pollJobStatus(jobId), 5000);
       } else if (jobData.status === "daytona") {
         setSubmitMessage("Setting up cloud infrastructure...");
-        // Continue polling
-        setTimeout(() => pollJobStatus(jobId), 3000); // Poll every 3 seconds
+        setTimeout(() => pollJobStatus(jobId), 3000);
       } else if (jobData.status === "queued") {
         setSubmitMessage("Job queued, waiting to start...");
-        // Continue polling
-        setTimeout(() => pollJobStatus(jobId), 3000); // Poll every 3 seconds
+        setTimeout(() => pollJobStatus(jobId), 3000);
       } else {
-        // Handle any other statuses by continuing to poll
         setSubmitMessage(`Job status: ${jobData.status}`);
-        setTimeout(() => pollJobStatus(jobId), 5000); // Poll every 5 seconds
+        setTimeout(() => pollJobStatus(jobId), 5000);
       }
     } catch (e) {
       console.error("Error polling job status:", e);
@@ -160,357 +163,471 @@ export default function Home() {
         return;
       }
 
-      // Job submitted successfully, start polling
       const newJobId = json.jobId;
       setJobId(newJobId);
       setSubmitStatus("processing");
       setSubmitMessage("Training job submitted. Starting processing...");
       
-      // Start polling for status
-      setTimeout(() => pollJobStatus(newJobId), 2000); // Start polling after 2 seconds
+      setTimeout(() => pollJobStatus(newJobId), 2000);
       
     } catch (e) {
       const err = e as Error;
       setSubmitStatus("error");
       setSubmitMessage(err.message || "Unexpected error starting training.");
     }
-  }, [files, targetCol, pollJobStatus]); // Deliberately not depending on live states; polling reads fresh values
+  }, [files, targetCol, pollJobStatus]);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
-      <div className="flex flex-col items-center justify-center mb-6">
-        <h1 className="text-3xl font-bold">Welcome to SproutML 🌱</h1>
-        <p className="text-base text-muted-foreground mt-1">Upload your dataset to get started.</p>
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background gradient effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="mt-6">
-        <Dropzone
-          accept={{ "text/csv": [".csv"] }}
-          onDrop={handleDrop}
-          onError={(e) => setError(e.message)}
-          src={files}
-          maxFiles={1}
-          className={`p-8 border-2 border-dashed transition-all duration-300 rounded-xl ${
-            files?.[0] 
-              ? "border-green-400 bg-green-50 hover:bg-green-100" 
-              : "border-gray-300 hover:cursor-pointer hover:border-blue-400 bg-gray-50/50 hover:bg-blue-50/50"
-          }`}
+      <div className="relative max-w-[1080px] mx-auto px-6 py-12">
+        {/* Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-16"
         >
-          {files?.[0] ? (
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div>
-                <p className="font-medium text-green-800">{files[0].name}</p>
-                <p className="text-sm text-green-600">{(files[0].size / 1024).toFixed(1)} KB uploaded successfully</p>
-              </div>
-              <span 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFiles(undefined);
-                  setColumns([]);
-                  setRows([]);
-                  setTargetCol("");
-                }}
-                className="text-sm text-green-700 hover:text-green-900 underline cursor-pointer"
-              >
-                Upload different file
-              </span>
-            </div>
-          ) : (
-            <>
-              <DropzoneEmptyState />
-              <DropzoneContent />
-            </>
-          )}
-        </Dropzone>
-        {error && (
-          <p className="text-sm text-red-600 mt-2" role="alert">{error}</p>
-        )}
-      </div>
-      {/* Target column */}
-      {columns.length > 0 && (
-        <div className="mt-6">
-          <div className="flex items-center gap-3 mb-4">
-            <label className="text-sm font-medium text-gray-700">Target column:</label>
-            <div className="flex flex-wrap gap-2">
-              {columns.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setTargetCol(c)}
-                  className={`flex items-center gap-2 px-3 py-1 hover:cursor-pointer rounded-full text-sm transition-all duration-200 ${
-                    targetCol === c
-                      ? "bg-blue-100 text-blue-700 border border-blue-200"
-                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-blue-50 hover:text-blue-600"
-                  }`}
-                >
-                  {targetCol === c && (
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                  )}
-                  {targetCol === c ? `Target: ${c}` : c}
-                </button>
-              ))}
-            </div>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass glass-border mb-6">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="text-sm text-muted-foreground">AutoML Made Simple</span>
           </div>
-        </div>
-      )}
+          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+            Welcome to SproutML
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Upload your dataset, select a target column, and let our AI train the perfect model for you.
+          </p>
+        </motion.div>
 
-      {/* Preview rows */}
-      {previewRows.length > 0 && (
-        <div className="mt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {columns.map((c) => (
-                  <TableHead 
-                    key={c}
-                    className={`transition-all duration-300 ${
-                      c === targetCol 
-                        ? "bg-blue-100 font-semibold text-blue-900 border-l-4 border-blue-500 animate-in slide-in-from-left-1" 
-                        : "hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      {c}
-                      {c === targetCol && (
-                        <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full animate-in zoom-in-50 duration-200">
-                          🎯 Target
-                        </span>
-                      )}
+        {/* Upload Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <div
+            onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
+            onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+            onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
+            onDrop={handleDrop}
+            className={`relative rounded-2xl glass glass-border p-12 transition-all duration-200 ${
+              dragActive ? "border-primary bg-primary/5" : ""
+            } ${files?.[0] ? "border-primary/50" : ""}`}
+          >
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleFileInput}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+            
+            <AnimatePresence mode="wait">
+              {files?.[0] ? (
+                <motion.div
+                  key="uploaded"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <FileCheck2 className="w-7 h-7 text-primary" />
                     </div>
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {previewRows.map((row, i) => (
-                <TableRow key={i} className="hover:bg-gray-50/50 transition-colors">
-                  {columns.map((c) => (
-                    <TableCell 
-                      key={c}
-                      className={`transition-all duration-300 ${
-                        c === targetCol 
-                          ? "bg-blue-50 font-medium text-blue-900 border-l-4 border-blue-300" 
-                          : ""
+                    <div>
+                      <p className="font-semibold text-lg">{files[0].name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(files[0].size / 1024).toFixed(1)} KB • {rows.length.toLocaleString()} rows • {columns.length} columns
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFiles(undefined);
+                      setColumns([]);
+                      setRows([]);
+                      setTargetCol("");
+                    }}
+                    className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-secondary transition-colors"
+                  >
+                    Change file
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-center"
+                >
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                    <Upload className="w-8 h-8 text-primary" />
+                  </div>
+                  <p className="text-lg font-medium mb-2">Drop your CSV file here</p>
+                  <p className="text-sm text-muted-foreground">
+                    or click to browse from your computer
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          
+          {error && (
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-sm text-destructive mt-3"
+            >
+              {error}
+            </motion.p>
+          )}
+        </motion.div>
+
+        {/* Column Selection */}
+        <AnimatePresence>
+          {columns.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mt-8"
+            >
+              <div className="rounded-2xl glass glass-border p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Target className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">Select Target Column</h3>
+                    <p className="text-sm text-muted-foreground">Choose the column you want to predict</p>
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  {columns.map((col, idx) => (
+                    <motion.button
+                      key={col}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: idx * 0.03 }}
+                      onClick={() => setTargetCol(col)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        targetCol === col
+                          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                          : "glass glass-border hover:border-primary/50"
                       }`}
                     >
-                      {String((row as CsvRow)[c] ?? "")}
-                    </TableCell>
+                      {col}
+                    </motion.button>
                   ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <div className="text-center text-muted-foreground mt-4 text-sm">
-            Showing first {previewRows.length} rows
-          </div>
-        </div>
-      )}
-
-      {/* Begin training */}
-      <div className="mt-8 flex items-center gap-3">
-        <Button
-          onClick={handleBeginTraining}
-          disabled={!files?.[0] || !targetCol || submitStatus === "loading" || submitStatus === "processing"}
-          className="bg-green-600 hover:cursor-pointer"
-        >
-          {submitStatus === "loading" 
-            ? "Submitting..." 
-            : submitStatus === "processing" 
-            ? "Training..." 
-            : "Begin training"}
-        </Button>
-        {submitStatus !== "idle" && (
-          <div className="flex items-center gap-2">
-            {submitStatus === "processing" && (
-              <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-            )}
-            <span className={
-              submitStatus === "success"
-                ? "text-green-600 text-sm"
-                : submitStatus === "error"
-                ? "text-red-600 text-sm"
-                : submitStatus === "processing"
-                ? "text-blue-600 text-sm"
-                : "text-muted-foreground text-sm"
-            }>
-              {submitMessage}
-            </span>
-            {jobId && (
-              <span className="text-xs text-gray-500 ml-2">
-                Job ID: {jobId.slice(0, 8)}...
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Live updates */}
-      {(submitStatus === "processing" || latestPreOutput || latestModelResult) && (
-        <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="text-lg font-semibold text-blue-800 mb-4">Live updates</h3>
-          {latestPreOutput && (
-            <div className="bg-white p-4 rounded border mb-4">
-              <h4 className="font-medium text-gray-800 mb-2">Preprocessing step output</h4>
-              <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded max-h-64 overflow-auto">{latestPreOutput}</pre>
-            </div>
-          )}
-          {latestModelResult && (
-            <div className="bg-white p-4 rounded border">
-              <h4 className="font-medium text-gray-800 mb-2">Latest model result</h4>
-              <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded max-h-64 overflow-auto">{JSON.stringify(latestModelResult, null, 2)}</pre>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Training Results */}
-      {trainingResults && (
-        <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-lg">
-          <h3 className="text-lg font-semibold text-green-800 mb-4">🎉 Training Results</h3>
-          <div className="bg-white p-4 rounded border">
-            <h4 className="font-medium text-gray-800 mb-2">Orchestrator Output:</h4>
-            <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded">
-              {trainingResults.orchestrator_output || "No detailed output available."}
-            </pre>
-          </div>
-          {jobId && (
-            <div className="mt-6 bg-white p-4 rounded border">
-              <h4 className="font-medium text-gray-800 mb-2">📦 Artifacts</h4>
-              <div className="text-sm text-gray-700 mb-2">Latest CSV: {artifacts?.latest_csv || "N/A"}</div>
-              {artifacts?.model_files_ready && (
-                <div className="text-sm text-purple-700 mb-2 font-medium">
-                  🤖 Trained Models: {artifacts.model_files?.length || 0} model(s) ready for download
                 </div>
-              )}
-              <div className="flex items-center gap-2 mb-3">
-                <Button
-                  onClick={async () => {
-                    const res = await fetch(`/api/job/${jobId}/artifacts`);
-                    if (res.ok) setArtifacts(await res.json());
-                  }}
-                  className="bg-blue-600 hover:cursor-pointer"
-                >
-                  Refresh Artifacts
-                </Button>
-                {artifacts?.latest_csv && (
-                  <a
-                    href={`/api/job/${jobId}/download?file=${encodeURIComponent(artifacts.latest_csv)}`}
-                    className="px-3 py-2 rounded bg-green-600 text-white text-sm"
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Data Preview */}
+        <AnimatePresence>
+          {previewRows.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              className="mt-8"
+            >
+              <div className="rounded-2xl glass glass-border overflow-hidden">
+                <div className="p-6 border-b border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                      <BarChart3 className="w-5 h-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">Data Preview</h3>
+                      <p className="text-sm text-muted-foreground">First {previewRows.length} rows of your dataset</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        {columns.map((col) => (
+                          <th
+                            key={col}
+                            className={`px-6 py-4 text-left text-sm font-semibold transition-all ${
+                              col === targetCol
+                                ? "bg-primary/10 text-primary"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {col}
+                              {col === targetCol && (
+                                <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-medium">
+                                  Target
+                                </span>
+                              )}
+                            </div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewRows.map((row, idx) => (
+                        <motion.tr
+                          key={idx}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: idx * 0.05 }}
+                          className="border-b border-border/50 hover:bg-secondary/50 transition-colors"
+                        >
+                          {columns.map((col) => (
+                            <td
+                              key={col}
+                              className={`px-6 py-4 text-sm ${
+                                col === targetCol
+                                  ? "bg-primary/5 font-medium"
+                                  : ""
+                              }`}
+                            >
+                              {String((row as CsvRow)[col] ?? "")}
+                            </td>
+                          ))}
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Training Button */}
+        <AnimatePresence>
+          {columns.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mt-8 flex items-center gap-4"
+            >
+              <Button
+                onClick={handleBeginTraining}
+                disabled={!files?.[0] || !targetCol || submitStatus === "loading" || submitStatus === "processing"}
+                className="gradient-primary text-primary-foreground px-8 py-6 text-lg rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitStatus === "loading" || submitStatus === "processing" ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
+                    {submitStatus === "processing" ? "Training..." : "Submitting..."}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Begin Training
+                  </>
+                )}
+              </Button>
+              
+              <AnimatePresence>
+                {submitMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    className="flex items-center gap-2"
                   >
-                    Download Latest CSV
-                  </a>
+                    {submitStatus === "processing" && (
+                      <Activity className="w-4 h-4 text-primary animate-pulse" />
+                    )}
+                    <span className={`text-sm ${
+                      submitStatus === "success" ? "text-primary" :
+                      submitStatus === "error" ? "text-destructive" :
+                      "text-muted-foreground"
+                    }`}>
+                      {submitMessage}
+                    </span>
+                    {jobId && (
+                      <span className="text-xs text-muted-foreground/60 ml-2">
+                        ID: {jobId.slice(0, 8)}
+                      </span>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Live Updates */}
+        <AnimatePresence>
+          {(submitStatus === "processing" || latestPreOutput || latestModelResult) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="mt-8"
+            >
+              <div className="rounded-2xl glass glass-border p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <Activity className="w-5 h-5 text-blue-500 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">Live Training Updates</h3>
+                    <p className="text-sm text-muted-foreground">Real-time progress from your training job</p>
+                  </div>
+                </div>
+                
+                {latestPreOutput && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-xl bg-secondary p-4 mb-4"
+                  >
+                    <h4 className="font-medium mb-2 text-sm">Preprocessing Output</h4>
+                    <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono max-h-64 overflow-auto">
+                      {latestPreOutput}
+                    </pre>
+                  </motion.div>
+                )}
+                
+                {latestModelResult && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-xl bg-secondary p-4"
+                  >
+                    <h4 className="font-medium mb-2 text-sm">Latest Model Result</h4>
+                    <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono max-h-64 overflow-auto">
+                      {JSON.stringify(latestModelResult, null, 2)}
+                    </pre>
+                  </motion.div>
                 )}
               </div>
-               <div className="bg-gray-50 rounded-lg p-4 max-h-80 overflow-auto">
-                 {!artifacts?.files?.length ? (
-                   <div className="text-center py-8">
-                     <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-lg flex items-center justify-center">
-                       <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                       </svg>
-                     </div>
-                     <p className="text-sm text-gray-500">No files available yet</p>
-                   </div>
-                 ) : (
-                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                     {artifacts.files.map((filename) => {
-                       const getFileIcon = (filename: string) => {
-                         const ext = filename.toLowerCase().split('.').pop();
-                         switch (ext) {
-                           case 'csv':
-                             return (
-                               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
-                                 <Image src="/csv.svg" alt="CSV file" width={40} height={40} className="object-contain" />
-                               </div>
-                             );
-                           case 'json':
-                             return (
-                               <div className="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
-                                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                                 </svg>
-                               </div>
-                             );
-                           case 'png':
-                           case 'jpg':
-                           case 'jpeg':
-                           case 'gif':
-                             return (
-                               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
-                                 <Image src="/png.svg" alt="Image file" width={40} height={40} className="object-contain" />
-                               </div>
-                             );
-                           case 'py':
-                             return (
-                               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
-                                 <Image src="/py.svg" alt="Python file" width={40} height={40} className="object-contain" />
-                               </div>
-                             );
-                           case 'txt':
-                           case 'log':
-                             return (
-                               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
-                                 <Image src="/txt.svg" alt="Text file" width={40} height={40} className="object-contain" />
-                               </div>
-                             );
-                           case 'pkl':
-                             return (
-                               <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                                 </svg>
-                               </div>
-                             );
-                           default:
-                             return (
-                               <div className="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center">
-                                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                 </svg>
-                               </div>
-                             );
-                         }
-                       };
-
-                       return (
-                         <div key={filename} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow group">
-                           <div className="flex items-start gap-3">
-                             {getFileIcon(filename)}
-                             <div className="flex-1 min-w-0">
-                               <p className="text-sm font-medium text-gray-900 truncate" title={filename}>
-                                 {filename}
-                               </p>
-                               <p className="text-xs text-gray-500 mt-1">
-                                 {filename.split('.').pop()?.toUpperCase()} file
-                               </p>
-                             </div>
-                           </div>
-                           <div className="mt-3 flex justify-end">
-                             <a
-                               href={`/api/job/${jobId}/download?file=${encodeURIComponent(filename)}`}
-                               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-medium rounded-lg transition-colors group-hover:bg-blue-100"
-                               title={`Download ${filename}`}
-                             >
-                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                               </svg>
-                               Download
-                             </a>
-                           </div>
-                         </div>
-                       );
-                     })}
-                   </div>
-                 )}
-               </div>
-            </div>
+            </motion.div>
           )}
-        </div>
-      )}
+        </AnimatePresence>
+
+        {/* Results */}
+        <AnimatePresence>
+          {trainingResults && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="mt-8"
+            >
+              <div className="rounded-2xl glass glass-border overflow-hidden gradient-card">
+                <div className="p-8 border-b border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold">Training Complete!</h3>
+                      <p className="text-sm text-muted-foreground">Your model has been successfully trained</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="p-8">
+                  <div className="rounded-xl bg-secondary p-6 mb-6">
+                    <h4 className="font-semibold mb-3">Model Output</h4>
+                    <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-mono max-h-96 overflow-auto">
+                      {trainingResults.orchestrator_output || "No detailed output available."}
+                    </pre>
+                  </div>
+                  
+                  {artifacts && (
+                    <div className="rounded-xl bg-secondary p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-semibold">Artifacts & Downloads</h4>
+                        <Button
+                          onClick={async () => {
+                            const res = await fetch(`/api/job/${jobId}/artifacts`);
+                            if (res.ok) setArtifacts(await res.json());
+                          }}
+                          className="text-sm"
+                          variant="outline"
+                        >
+                          Refresh
+                        </Button>
+                      </div>
+                      
+                      {artifacts.latest_csv && (
+                        <div className="flex items-center justify-between p-4 rounded-lg bg-card/50 mb-4">
+                          <div className="flex items-center gap-3">
+                            <FileCheck2 className="w-5 h-5 text-primary" />
+                            <div>
+                              <p className="font-medium text-sm">Latest CSV</p>
+                              <p className="text-xs text-muted-foreground">{artifacts.latest_csv}</p>
+                            </div>
+                          </div>
+                          <a
+                            href={`/api/job/${jobId}/download?file=${encodeURIComponent(artifacts.latest_csv)}`}
+                            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity inline-flex items-center gap-2"
+                          >
+                            <Download className="w-4 h-4" />
+                            Download
+                          </a>
+                        </div>
+                      )}
+                      
+                      {artifacts.model_files_ready && artifacts.model_files && artifacts.model_files.length > 0 && (
+                        <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 mb-4">
+                          <p className="text-sm font-medium text-primary mb-2">
+                            🤖 {artifacts.model_files.length} trained model(s) ready
+                          </p>
+                        </div>
+                      )}
+                      
+                      {artifacts.files && artifacts.files.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {artifacts.files.map((filename) => (
+                            <motion.div
+                              key={filename}
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className="p-4 rounded-lg bg-card/50 hover:bg-card transition-colors group"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{filename}</p>
+                                  <p className="text-xs text-muted-foreground">{filename.split('.').pop()?.toUpperCase()}</p>
+                                </div>
+                                <a
+                                  href={`/api/job/${jobId}/download?file=${encodeURIComponent(filename)}`}
+                                  className="ml-3 p-2 rounded-lg hover:bg-secondary transition-colors"
+                                  title={`Download ${filename}`}
+                                >
+                                  <Download className="w-4 h-4" />
+                                </a>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
