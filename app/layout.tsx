@@ -1,20 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "SproutML🌱",
-  description: "SproutML is a platform for machine learning.",
+  title: "SproutML — Modern Machine Learning Platform",
+  description: "Upload your dataset, select your target, and train ML models with ease. A modern, intuitive platform for machine learning.",
 };
 
 export default function RootLayout({
@@ -24,9 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
-      >
+      <body className="antialiased font-sans">
         {children}
       </body>
     </html>
