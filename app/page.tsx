@@ -218,7 +218,7 @@ export default function Home() {
                 <p className="font-medium text-text text-sm truncate">{files[0].name}</p>
                 <p className="text-xs text-subtext mt-0.5">{(files[0].size / 1024).toFixed(1)} KB</p>
               </div>
-              <button 
+              <span 
                 onClick={(e) => {
                   e.stopPropagation();
                   setFiles(undefined);
@@ -226,10 +226,22 @@ export default function Home() {
                   setRows([]);
                   setTargetCol("");
                 }}
-                className="text-xs text-subtext hover:text-text px-3 py-1.5 rounded-md hover:bg-muted transition-colors"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setFiles(undefined);
+                    setColumns([]);
+                    setRows([]);
+                    setTargetCol("");
+                  }
+                }}
+                className="text-xs text-subtext hover:text-text px-3 py-1.5 rounded-md hover:bg-muted transition-colors cursor-pointer"
               >
                 Remove
-              </button>
+              </span>
             </div>
           ) : (
             <>
