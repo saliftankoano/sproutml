@@ -29,26 +29,26 @@
 }
 
 :root {
-  /* Premium neutral color palette */
+  /* Premium neutral color palette with green plant theme */
   --background: #F9FAFB;
   --surface: #FFFFFF;
   --text: #111827;
   --subtext: #6B7280;
   --border: #E5E7EB;
-  --accent: #2563EB;
-  --accent-hover: #1D4ED8;
+  --accent: #16A34A;
+  --accent-hover: #15803D;
   
   /* Legacy mappings for components */
   --foreground: #111827;
   --card: #FFFFFF;
   --card-foreground: #111827;
-  --primary: #2563EB;
+  --primary: #16A34A;
   --primary-foreground: #FFFFFF;
   --muted: #F3F4F6;
   --muted-foreground: #6B7280;
   --destructive: #DC2626;
   --input: #E5E7EB;
-  --ring: #2563EB;
+  --ring: #16A34A;
 }
 
 @layer base {
