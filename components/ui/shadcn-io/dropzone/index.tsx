@@ -184,18 +184,23 @@ export const DropzoneEmptyState = ({
   }
 
   return (
-    <div className={cn('flex flex-col items-center justify-center', className)}>
-      <div className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
-        <UploadIcon size={16} />
+    <div className={cn('flex flex-col items-center justify-center text-center space-y-3', className)}>
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl blur-xl opacity-20 animate-pulse"></div>
+        <div className="relative flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-600 shadow-lg">
+          <UploadIcon size={28} strokeWidth={2.5} />
+        </div>
       </div>
-      <p className="my-2 w-full truncate text-wrap font-medium text-sm">
-        Upload {maxFiles === 1 ? 'a file' : 'files'}
-      </p>
-      <p className="w-full truncate text-wrap text-muted-foreground text-xs">
-        Drag and drop or click to upload
-      </p>
+      <div>
+        <p className="font-semibold text-lg text-gray-900">
+          Upload {maxFiles === 1 ? 'your file' : 'your files'}
+        </p>
+        <p className="text-gray-600 text-sm mt-1">
+          Drag and drop or click to browse
+        </p>
+      </div>
       {caption && (
-        <p className="text-wrap text-muted-foreground text-xs">{caption}.</p>
+        <p className="text-gray-500 text-xs bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">{caption}.</p>
       )}
     </div>
   );
