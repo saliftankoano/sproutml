@@ -178,9 +178,27 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-surface">
+      <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-[1080px] mx-auto px-6 py-4">
-          <h1 className="text-lg font-semibold text-text">SproutML</h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-accent to-accent-hover rounded-md flex items-center justify-center shadow-sm">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold text-text tracking-tight">SproutML</h1>
+                <p className="text-xs text-subtext">AutoML Platform</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-accent/10 text-accent text-xs font-medium">
+                <span className="w-1.5 h-1.5 bg-accent rounded-full mr-1.5 animate-pulse"></span>
+                Ready
+              </span>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -263,7 +281,7 @@ export default function Home() {
               <button
                 key={c}
                 onClick={() => setTargetCol(c)}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer ${
                   targetCol === c
                     ? "bg-accent text-white shadow-sm"
                     : "bg-surface text-text border border-border hover:border-accent hover:bg-accent/5"
