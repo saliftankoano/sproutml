@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useCallback } from "react";
-import Image from "next/image";
 import Papa, { ParseResult } from "papaparse";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/ui/shadcn-io/dropzone";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -177,35 +176,63 @@ export default function Home() {
   }, [files, targetCol, pollJobStatus]); // Deliberately not depending on live states; polling reads fresh values
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
-      <div className="flex flex-col items-center justify-center mb-6">
-        <h1 className="text-3xl font-bold">Welcome to SproutML 🌱</h1>
-        <p className="text-base text-muted-foreground mt-1">Upload your dataset to get started.</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-[1080px] mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-accent to-accent-hover rounded-md flex items-center justify-center shadow-sm text-xl">
+                🌱
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold text-text tracking-tight">SproutML</h1>
+                <p className="text-xs text-subtext">AutoML Platform</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-accent/10 text-accent text-xs font-medium">
+                <span className="w-1.5 h-1.5 bg-accent rounded-full mr-1.5 animate-pulse"></span>
+                Ready
+              </span>
+            </div>
+          </div>
+        </div>
+      </header>
 
-      <div className="mt-6">
-        <Dropzone
-          accept={{ "text/csv": [".csv"] }}
-          onDrop={handleDrop}
-          onError={(e) => setError(e.message)}
-          src={files}
-          maxFiles={1}
-          className={`p-8 border-2 border-dashed transition-all duration-300 rounded-xl ${
-            files?.[0] 
-              ? "border-green-400 bg-green-50 hover:bg-green-100" 
-              : "border-gray-300 hover:cursor-pointer hover:border-blue-400 bg-gray-50/50 hover:bg-blue-50/50"
-          }`}
-        >
+      {/* Main Content */}
+      <main className="max-w-[1080px] mx-auto px-6 py-12">
+        {/* Hero Section */}
+        <div className="mb-12 animate-fade-in">
+          <h2 className="text-3xl font-semibold text-text mb-2 tracking-tight">Train your model</h2>
+          <p className="text-base text-subtext">Upload a CSV dataset to automatically train and evaluate machine learning models.</p>
+        </div>
+
+        {/* Upload Section */}
+        <div className="mb-8 animate-slide-up">
+          <label className="block text-sm font-medium text-text mb-3">Dataset</label>
+          <Dropzone
+            accept={{ "text/csv": [".csv"] }}
+            onDrop={handleDrop}
+            onError={(e) => setError(e.message)}
+            src={files}
+            maxFiles={1}
+            className={`p-8 border transition-all duration-200 rounded-md ${
+              files?.[0] 
+                ? "border-border bg-surface shadow-sm" 
+                : "border-dashed border-border hover:border-accent hover:bg-surface/50"
+            }`}
+          >
           {files?.[0] ? (
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-accent/10 rounded-md flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <div>
-                <p className="font-medium text-green-800">{files[0].name}</p>
-                <p className="text-sm text-green-600">{(files[0].size / 1024).toFixed(1)} KB uploaded successfully</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-text text-sm truncate">{files[0].name}</p>
+                <p className="text-xs text-subtext mt-0.5">{(files[0].size / 1024).toFixed(1)} KB</p>
               </div>
               <span 
                 onClick={(e) => {
@@ -215,9 +242,21 @@ export default function Home() {
                   setRows([]);
                   setTargetCol("");
                 }}
-                className="text-sm text-green-700 hover:text-green-900 underline cursor-pointer"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setFiles(undefined);
+                    setColumns([]);
+                    setRows([]);
+                    setTargetCol("");
+                  }
+                }}
+                className="text-xs text-subtext hover:text-text px-3 py-1.5 rounded-md hover:bg-muted transition-colors cursor-pointer"
               >
-                Upload different file
+                Remove
               </span>
             </div>
           ) : (
@@ -228,209 +267,257 @@ export default function Home() {
           )}
         </Dropzone>
         {error && (
-          <p className="text-sm text-red-600 mt-2" role="alert">{error}</p>
+          <p className="text-sm text-destructive mt-2" role="alert">{error}</p>
         )}
-      </div>
+        </div>
       {/* Target column */}
       {columns.length > 0 && (
-        <div className="mt-6">
-          <div className="flex items-center gap-3 mb-4">
-            <label className="text-sm font-medium text-gray-700">Target column:</label>
-            <div className="flex flex-wrap gap-2">
-              {columns.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setTargetCol(c)}
-                  className={`flex items-center gap-2 px-3 py-1 hover:cursor-pointer rounded-full text-sm transition-all duration-200 ${
-                    targetCol === c
-                      ? "bg-blue-100 text-blue-700 border border-blue-200"
-                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-blue-50 hover:text-blue-600"
-                  }`}
-                >
-                  {targetCol === c && (
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                  )}
-                  {targetCol === c ? `Target: ${c}` : c}
-                </button>
-              ))}
-            </div>
+        <div className="mb-8 animate-slide-up">
+          <label className="block text-sm font-medium text-text mb-3">Target column</label>
+          <div className="flex flex-wrap gap-2">
+            {columns.map((c) => (
+              <button
+                key={c}
+                onClick={() => setTargetCol(c)}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  targetCol === c
+                    ? "bg-accent text-white shadow-sm"
+                    : "bg-surface text-text border border-border hover:border-accent hover:bg-accent/5"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
       {/* Preview rows */}
       {previewRows.length > 0 && (
-        <div className="mt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {columns.map((c) => (
-                  <TableHead 
-                    key={c}
-                    className={`transition-all duration-300 ${
-                      c === targetCol 
-                        ? "bg-blue-100 font-semibold text-blue-900 border-l-4 border-blue-500 animate-in slide-in-from-left-1" 
-                        : "hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      {c}
-                      {c === targetCol && (
-                        <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full animate-in zoom-in-50 duration-200">
-                          🎯 Target
-                        </span>
-                      )}
-                    </div>
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {previewRows.map((row, i) => (
-                <TableRow key={i} className="hover:bg-gray-50/50 transition-colors">
-                  {columns.map((c) => (
-                    <TableCell 
-                      key={c}
-                      className={`transition-all duration-300 ${
-                        c === targetCol 
-                          ? "bg-blue-50 font-medium text-blue-900 border-l-4 border-blue-300" 
-                          : ""
-                      }`}
-                    >
-                      {String((row as CsvRow)[c] ?? "")}
-                    </TableCell>
+        <div className="mb-8 animate-slide-up">
+          <label className="block text-sm font-medium text-text mb-3">Data preview</label>
+          <div className="bg-surface border border-border rounded-md overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-border bg-muted/30">
+                    {columns.map((c) => (
+                      <TableHead 
+                        key={c}
+                        className={`text-xs font-semibold uppercase tracking-wide transition-colors duration-200 ${
+                          c === targetCol 
+                            ? "bg-accent/5 text-accent" 
+                            : "text-subtext"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          {c}
+                          {c === targetCol && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-accent text-white rounded">
+                              TARGET
+                            </span>
+                          )}
+                        </div>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {previewRows.map((row, i) => (
+                    <TableRow key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors duration-150">
+                      {columns.map((c) => (
+                        <TableCell 
+                          key={c}
+                          className={`text-sm transition-colors duration-200 ${
+                            c === targetCol 
+                              ? "font-medium text-text bg-accent/5" 
+                              : "text-subtext"
+                          }`}
+                        >
+                          {String((row as CsvRow)[c] ?? "")}
+                        </TableCell>
+                      ))}
+                    </TableRow>
                   ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <div className="text-center text-muted-foreground mt-4 text-sm">
-            Showing first {previewRows.length} rows
+                </TableBody>
+              </Table>
+            </div>
           </div>
+          <p className="text-xs text-subtext mt-3 text-center">
+            Showing first {previewRows.length} of {rows.length} rows
+          </p>
         </div>
       )}
 
       {/* Begin training */}
-      <div className="mt-8 flex items-center gap-3">
+      <div className="mb-8">
         <Button
           onClick={handleBeginTraining}
           disabled={!files?.[0] || !targetCol || submitStatus === "loading" || submitStatus === "processing"}
-          className="bg-green-600 hover:cursor-pointer"
+          className="h-10 px-6 bg-accent hover:bg-accent-hover text-white font-medium rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitStatus === "loading" 
             ? "Submitting..." 
             : submitStatus === "processing" 
-            ? "Training..." 
-            : "Begin training"}
+            ? "Training in progress..." 
+            : "Start training"}
         </Button>
+        
         {submitStatus !== "idle" && (
-          <div className="flex items-center gap-2">
+          <div className="mt-4 flex items-start gap-3 p-4 rounded-md border border-border bg-surface">
             {submitStatus === "processing" && (
-              <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+              <div className="animate-spin h-4 w-4 border-2 border-accent border-t-transparent rounded-full mt-0.5 flex-shrink-0"></div>
             )}
-            <span className={
-              submitStatus === "success"
-                ? "text-green-600 text-sm"
-                : submitStatus === "error"
-                ? "text-red-600 text-sm"
-                : submitStatus === "processing"
-                ? "text-blue-600 text-sm"
-                : "text-muted-foreground text-sm"
-            }>
-              {submitMessage}
-            </span>
-            {jobId && (
-              <span className="text-xs text-gray-500 ml-2">
-                Job ID: {jobId.slice(0, 8)}...
-              </span>
+            {submitStatus === "success" && (
+              <div className="w-4 h-4 bg-accent/10 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                <svg className="w-3 h-3 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
             )}
+            {submitStatus === "error" && (
+              <div className="w-4 h-4 bg-destructive/10 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                <svg className="w-3 h-3 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-medium ${
+                submitStatus === "success"
+                  ? "text-accent"
+                  : submitStatus === "error"
+                  ? "text-destructive"
+                  : "text-text"
+              }`}>
+                {submitMessage}
+              </p>
+              {jobId && (
+                <p className="text-xs text-subtext mt-1">
+                  Job ID: <code className="font-mono bg-muted px-1.5 py-0.5 rounded">{jobId.slice(0, 8)}...</code>
+                </p>
+              )}
+            </div>
           </div>
         )}
       </div>
 
       {/* Live updates */}
       {(submitStatus === "processing" || latestPreOutput || latestModelResult) && (
-        <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="text-lg font-semibold text-blue-800 mb-4">Live updates</h3>
-          {latestPreOutput && (
-            <div className="bg-white p-4 rounded border mb-4">
-              <h4 className="font-medium text-gray-800 mb-2">Preprocessing step output</h4>
-              <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded max-h-64 overflow-auto">{latestPreOutput}</pre>
-            </div>
-          )}
-          {latestModelResult && (
-            <div className="bg-white p-4 rounded border">
-              <h4 className="font-medium text-gray-800 mb-2">Latest model result</h4>
-              <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded max-h-64 overflow-auto">{JSON.stringify(latestModelResult, null, 2)}</pre>
-            </div>
-          )}
+        <div className="mb-8 animate-slide-up">
+          <h3 className="text-base font-semibold text-text mb-4">Live updates</h3>
+          <div className="space-y-4">
+            {latestPreOutput && (
+              <div className="bg-surface border border-border rounded-md overflow-hidden">
+                <div className="px-4 py-3 border-b border-border bg-muted/30">
+                  <h4 className="text-sm font-medium text-text">Preprocessing output</h4>
+                </div>
+                <div className="p-4">
+                  <pre className="text-xs text-subtext whitespace-pre-wrap font-mono bg-muted/50 p-4 rounded-md max-h-64 overflow-auto">{latestPreOutput}</pre>
+                </div>
+              </div>
+            )}
+            {latestModelResult && (
+              <div className="bg-surface border border-border rounded-md overflow-hidden">
+                <div className="px-4 py-3 border-b border-border bg-muted/30">
+                  <h4 className="text-sm font-medium text-text">Latest model result</h4>
+                </div>
+                <div className="p-4">
+                  <pre className="text-xs text-subtext whitespace-pre-wrap font-mono bg-muted/50 p-4 rounded-md max-h-64 overflow-auto">{JSON.stringify(latestModelResult, null, 2)}</pre>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* Training Results */}
       {trainingResults && (
-        <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-lg">
-          <h3 className="text-lg font-semibold text-green-800 mb-4">🎉 Training Results</h3>
-          <div className="bg-white p-4 rounded border">
-            <h4 className="font-medium text-gray-800 mb-2">Orchestrator Output:</h4>
-            <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded">
-              {trainingResults.orchestrator_output || "No detailed output available."}
-            </pre>
+        <div className="mb-8 animate-slide-up">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-6 h-6 bg-accent/10 rounded-full flex items-center justify-center">
+              <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-base font-semibold text-text">Training complete</h3>
+          </div>
+          
+          <div className="bg-surface border border-border rounded-md overflow-hidden mb-4">
+            <div className="px-4 py-3 border-b border-border bg-muted/30">
+              <h4 className="text-sm font-medium text-text">Results</h4>
+            </div>
+            <div className="p-4">
+              <pre className="text-xs text-subtext whitespace-pre-wrap font-mono bg-muted/50 p-4 rounded-md max-h-96 overflow-auto">
+                {trainingResults.orchestrator_output || "No detailed output available."}
+              </pre>
+            </div>
           </div>
           {jobId && (
-            <div className="mt-6 bg-white p-4 rounded border">
-              <h4 className="font-medium text-gray-800 mb-2">📦 Artifacts</h4>
-              <div className="text-sm text-gray-700 mb-2">Latest CSV: {artifacts?.latest_csv || "N/A"}</div>
-              {artifacts?.model_files_ready && (
-                <div className="text-sm text-purple-700 mb-2 font-medium">
-                  🤖 Trained Models: {artifacts.model_files?.length || 0} model(s) ready for download
+            <div className="bg-surface border border-border rounded-md overflow-hidden">
+              <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-medium text-text">Artifacts</h4>
+                  {artifacts?.latest_csv && (
+                    <p className="text-xs text-subtext mt-1">Latest CSV: {artifacts.latest_csv}</p>
+                  )}
                 </div>
-              )}
-              <div className="flex items-center gap-2 mb-3">
-                <Button
-                  onClick={async () => {
-                    const res = await fetch(`/api/job/${jobId}/artifacts`);
-                    if (res.ok) setArtifacts(await res.json());
-                  }}
-                  className="bg-blue-600 hover:cursor-pointer"
-                >
-                  Refresh Artifacts
-                </Button>
-                {artifacts?.latest_csv && (
-                  <a
-                    href={`/api/job/${jobId}/download?file=${encodeURIComponent(artifacts.latest_csv)}`}
-                    className="px-3 py-2 rounded bg-green-600 text-white text-sm"
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={async () => {
+                      const res = await fetch(`/api/job/${jobId}/artifacts`);
+                      if (res.ok) setArtifacts(await res.json());
+                    }}
+                    className="h-8 px-3 text-xs bg-surface border border-border hover:bg-muted text-text font-medium rounded-md"
                   >
-                    Download Latest CSV
-                  </a>
-                )}
+                    <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                  </Button>
+                  {artifacts?.latest_csv && (
+                    <a
+                      href={`/api/job/${jobId}/download?file=${encodeURIComponent(artifacts.latest_csv)}`}
+                      className="h-8 px-3 text-xs bg-accent hover:bg-accent-hover text-white font-medium rounded-md inline-flex items-center"
+                    >
+                      <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      Download CSV
+                    </a>
+                  )}
+                </div>
               </div>
-               <div className="bg-gray-50 rounded-lg p-4 max-h-80 overflow-auto">
+               <div className="p-4 bg-muted/20 max-h-96 overflow-auto">
                  {!artifacts?.files?.length ? (
-                   <div className="text-center py-8">
-                     <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-lg flex items-center justify-center">
-                       <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <div className="text-center py-12">
+                     <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-md flex items-center justify-center">
+                       <svg className="w-6 h-6 text-subtext" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                        </svg>
                      </div>
-                     <p className="text-sm text-gray-500">No files available yet</p>
+                     <p className="text-sm text-subtext">No files available yet</p>
                    </div>
                  ) : (
-                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                      {artifacts.files.map((filename) => {
                        const getFileIcon = (filename: string) => {
                          const ext = filename.toLowerCase().split('.').pop();
+                         const iconClass = "w-8 h-8 rounded-md flex items-center justify-center";
+                         
                          switch (ext) {
                            case 'csv':
                              return (
-                               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
-                                 <Image src="/csv.svg" alt="CSV file" width={40} height={40} className="object-contain" />
+                               <div className={`${iconClass} bg-accent/10`}>
+                                 <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                 </svg>
                                </div>
                              );
                            case 'json':
                              return (
-                               <div className="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
-                                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <div className={`${iconClass} bg-subtext/10`}>
+                                 <svg className="w-4 h-4 text-subtext" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                                  </svg>
                                </div>
@@ -440,35 +527,41 @@ export default function Home() {
                            case 'jpeg':
                            case 'gif':
                              return (
-                               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
-                                 <Image src="/png.svg" alt="Image file" width={40} height={40} className="object-contain" />
+                               <div className={`${iconClass} bg-accent/10`}>
+                                 <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                 </svg>
                                </div>
                              );
                            case 'py':
                              return (
-                               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
-                                 <Image src="/py.svg" alt="Python file" width={40} height={40} className="object-contain" />
+                               <div className={`${iconClass} bg-accent/10`}>
+                                 <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                 </svg>
                                </div>
                              );
                            case 'txt':
                            case 'log':
                              return (
-                               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
-                                 <Image src="/txt.svg" alt="Text file" width={40} height={40} className="object-contain" />
+                               <div className={`${iconClass} bg-subtext/10`}>
+                                 <svg className="w-4 h-4 text-subtext" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                 </svg>
                                </div>
                              );
                            case 'pkl':
                              return (
-                               <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                               <div className={`${iconClass} bg-accent/10`}>
+                                 <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                                  </svg>
                                </div>
                              );
                            default:
                              return (
-                               <div className="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center">
-                                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <div className={`${iconClass} bg-muted`}>
+                                 <svg className="w-4 h-4 text-subtext" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                  </svg>
                                </div>
@@ -477,31 +570,25 @@ export default function Home() {
                        };
 
                        return (
-                         <div key={filename} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow group">
-                           <div className="flex items-start gap-3">
-                             {getFileIcon(filename)}
-                             <div className="flex-1 min-w-0">
-                               <p className="text-sm font-medium text-gray-900 truncate" title={filename}>
-                                 {filename}
-                               </p>
-                               <p className="text-xs text-gray-500 mt-1">
-                                 {filename.split('.').pop()?.toUpperCase()} file
-                               </p>
-                             </div>
+                         <a
+                           key={filename}
+                           href={`/api/job/${jobId}/download?file=${encodeURIComponent(filename)}`}
+                           className="group flex items-center gap-3 p-3 bg-surface border border-border rounded-md hover:border-accent hover:bg-accent/5 transition-all duration-200"
+                           title={`Download ${filename}`}
+                         >
+                           {getFileIcon(filename)}
+                           <div className="flex-1 min-w-0">
+                             <p className="text-sm font-medium text-text truncate group-hover:text-accent transition-colors">
+                               {filename}
+                             </p>
+                             <p className="text-xs text-subtext">
+                               {filename.split('.').pop()?.toUpperCase()}
+                             </p>
                            </div>
-                           <div className="mt-3 flex justify-end">
-                             <a
-                               href={`/api/job/${jobId}/download?file=${encodeURIComponent(filename)}`}
-                               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-medium rounded-lg transition-colors group-hover:bg-blue-100"
-                               title={`Download ${filename}`}
-                             >
-                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                               </svg>
-                               Download
-                             </a>
-                           </div>
-                         </div>
+                           <svg className="w-4 h-4 text-subtext group-hover:text-accent flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                           </svg>
+                         </a>
                        );
                      })}
                    </div>
@@ -511,6 +598,7 @@ export default function Home() {
           )}
         </div>
       )}
+      </main>
     </div>
   );
 }
